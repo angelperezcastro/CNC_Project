@@ -365,4 +365,24 @@ This project is being built incrementally following a weekly plan:
 
 ## Repository Status
 
-This repository is currently in the normal traffic capture phase.
+This repository is currently in the attack traffic capture phase.
+
+## Attack Traffic Generation
+
+The attacker container includes an attack traffic generator with four independent modules:
+
+| Module | Description | Output PCAP |
+|---|---|---|
+| icmp_flood | ICMP echo flood against the server | data/raw/icmp_flood.pcap |
+| syn_scan | TCP SYN scan against ports 1-1000 | data/raw/syn_scan.pcap |
+| udp_scan | UDP scan against ports 1-500 | data/raw/udp_scan.pcap |
+| port_sweep | Host discovery over the Docker subnet | data/raw/port_sweep.pcap |
+
+Example commands:
+
+    docker compose exec attacker generate_attack.sh icmp_flood server 10
+    docker compose exec attacker generate_attack.sh syn_scan server
+    docker compose exec attacker generate_attack.sh udp_scan server
+    docker compose exec attacker generate_attack.sh port_sweep
+
+All attack traffic is restricted to the isolated Docker lab network.
