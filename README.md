@@ -365,7 +365,7 @@ This project is being built incrementally following a weekly plan:
 
 ## Repository Status
 
-This repository is currently in the attack traffic capture phase.
+This repository is currently in the dataset organization phase.
 
 ## Attack Traffic Generation
 
@@ -386,3 +386,34 @@ Example commands:
     docker compose exec attacker generate_attack.sh port_sweep
 
 All attack traffic is restricted to the isolated Docker lab network.
+
+## Automated Dataset Generation
+
+The project includes two Python scripts for automated dataset creation:
+
+| Script | Purpose |
+|---|---|
+| src/capture.py | Starts and stops tcpdump inside a Docker container and saves PCAP files under data/raw |
+| src/generate_dataset.py | Orchestrates traffic generation, packet capture and dataset statistics |
+
+Generate a smoke dataset:
+
+    python src/generate_dataset.py --duration 60 --tag smoke_day5 --labels normal syn_scan
+
+Generate the final Week 1 dataset with 10 minutes per category:
+
+    python src/generate_dataset.py --duration 600 --tag week1_final
+
+Regenerate dataset statistics from existing local PCAPs:
+
+    python src/generate_dataset.py --stats-only
+
+The organized raw dataset follows this structure:
+
+    data/raw/normal/
+    data/raw/icmp_flood/
+    data/raw/syn_scan/
+    data/raw/udp_scan/
+    data/raw/port_sweep/
+
+Raw PCAP files are ignored by Git, but docs/dataset_stats.md records their local packet counts, sizes and durations.
