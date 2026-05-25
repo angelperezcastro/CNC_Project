@@ -18,7 +18,7 @@ The main objective is to build a reproducible and modular pipeline capable of an
 - [x] Core dependencies installed
 - [x] Initial project structure created
 - [x] Docker traffic lab
-- [ ] PCAP capture
+- [x] PCAP capture
 - [ ] Flow reconstruction
 - [ ] Feature engineering
 - [ ] Machine learning pipeline
@@ -48,7 +48,7 @@ CNC_Project/
 ├── docker/
 │   ├── attacker/         Container for anomalous traffic generation
 │   ├── client/           Container for legitimate traffic generation
-│   └── server/           Container running nginx, vsftpd and iperf3
+│   └── server/           Container running nginx, vsftpd, dnsmasq and iperf3
 ├── docs/                 Technical documentation and setup notes
 ├── models/               Trained machine learning models
 ├── notebooks/            Exploratory analysis notebooks
@@ -132,7 +132,7 @@ The project includes an isolated Docker traffic lab with three containers connec
 
 | Container | Role | Static IP |
 |---|---|---|
-| server | Runs nginx, vsftpd and iperf3 | 172.20.0.10 |
+| server | Runs nginx, vsftpd, dnsmasq and iperf3 | 172.20.0.10 |
 | client | Generates legitimate traffic | 172.20.0.20 |
 | attacker | Generates anomalous and reconnaissance traffic | 172.20.0.30 |
 
@@ -160,6 +160,14 @@ docker compose exec client curl -I http://server
 docker compose exec client bash -lc 'echo "FTP smoke test from client" > /tmp/ftp_test.txt && lftp -u ftpuser,ftppass -e "set ftp:ssl-allow no; set ftp:passive-mode on; put /tmp/ftp_test.txt -o upload/ftp_test.txt; ls upload; bye" ftp://server'
 ```
 
+### Verify DNS
+
+```bash
+docker compose exec client dig @server server.cnc.local +short
+docker compose exec client dig @server api.cnc.local +short
+docker compose exec client dig @server files.cnc.local +short
+```
+
 ### Verify iperf3 traffic
 
 ```bash
@@ -179,7 +187,85 @@ docker compose exec attacker hping3 -S -c 5 -p 80 server
 docker compose down
 ```
 
-This Docker lab is used to generate controlled HTTP, FTP, ICMP, iperf3 and reconnaissance traffic for later PCAP capture, flow reconstruction and feature extraction.
+This Docker lab is used to generate controlled HTTP, FTP, DNS, ICMP, iperf3 and reconnaissance traffic for later PCAP capture, flow reconstruction and feature extraction.
+
+## Normal Traffic Generation
+
+The client container includes a normal traffic generator:
+
+```bash
+docker compose exec client generate_normal.sh 300
+```
+
+The script generates mixed legitimate traffic for 300 seconds:
+
+- HTTP GET requests with different response sizes.
+- HTTP POST requests with JSON payloads.
+- FTP uploads using 1 MB, 10 MB and 50 MB files.
+- DNS queries against the internal DNS service.
+
+The first labeled normal PCAP is stored locally as:
+
+```text
+data/raw/normal_http_ftp.pcap
+```
+
+Raw PCAP files are ignored by Git.
+
+## Normal Traffic Capture
+
+A reliable PCAP can be captured from the server container:
+
+```bash
+docker compose exec -d server bash -lc 'tcpdump -i any -U -w /captures/normal_http_ftp.pcap'
+```
+
+Then generate normal traffic:
+
+```bash
+docker compose exec client generate_normal.sh 300
+```
+
+Stop the capture:
+
+```bash
+docker compose exec server pkill tcpdump || true
+```
+
+Verify the resulting PCAP:
+
+```bash
+ls -lh data/raw/normal_http_ftp.pcap
+tshark -r data/raw/normal_http_ftp.pcap -c 20
+```
+
+Useful protocol checks:
+
+```bash
+tshark -r data/raw/normal_http_ftp.pcap -Y "http" -c 10
+tshark -r data/raw/normal_http_ftp.pcap -Y "ftp or tcp.port == 21" -c 10
+tshark -r data/raw/normal_http_ftp.pcap -Y "dns" -c 10
+tshark -r data/raw/normal_http_ftp.pcap -Y "tcp.port >= 30000 and tcp.port <= 30009" -c 10
+```
+
+## Wireshark Filters
+
+Useful Wireshark filters for validating the normal traffic PCAP:
+
+```text
+ip.addr == 172.20.0.10
+http or tcp.port == 80
+ftp or tcp.port == 21
+tcp.port >= 30000 and tcp.port <= 30009
+dns
+```
+
+These filters should show:
+
+- HTTP GET and POST traffic.
+- FTP control traffic on TCP/21.
+- FTP passive data traffic on TCP/30000-30009.
+- DNS queries to internal domains such as `server.cnc.local`, `api.cnc.local` and `files.cnc.local`.
 
 ## Dataset Policy
 
@@ -279,4 +365,4 @@ This project is being built incrementally following a weekly plan:
 
 ## Repository Status
 
-This repository is currently in the Docker traffic lab setup phase.
+This repository is currently in the normal traffic capture phase.

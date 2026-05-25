@@ -19,4 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+COPY generate_normal.sh /usr/local/bin/generate_normal.sh
+RUN chmod +x /usr/local/bin/generate_normal.sh
+
 CMD ["sleep", "infinity"]
