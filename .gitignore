@@ -32,3 +32,11 @@ temp/
 
 # Optional large or temporary model files
 models/*.tmp
+
+# Raw/intermediate generated traffic data
+data/raw/
+data/interim/
+
+# Large exploratory CSVs
+data/processed/nfstream_all_flows_exploration.csv
+data/processed/nfstream_important_columns_preview.csv

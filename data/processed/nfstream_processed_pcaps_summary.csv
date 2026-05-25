@@ -1,0 +1,6 @@
+label,pcap_file,n_flows
+icmp_flood,icmp_flood_week1_final.pcap,61
+normal,normal_week1_final.pcap,546
+port_sweep,port_sweep_week1_final.pcap,43
+syn_scan,syn_scan_week1_final.pcap,60120
+udp_scan,udp_scan_week1_final.pcap,19801

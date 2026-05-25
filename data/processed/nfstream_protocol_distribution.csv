@@ -1,0 +1,13 @@
+label,protocol_name,n_flows
+icmp_flood,UDP,60
+icmp_flood,ICMP,1
+normal,TCP,422
+normal,UDP,122
+normal,OTHER,2
+port_sweep,TCP,36
+port_sweep,UDP,6
+port_sweep,ICMP,1
+syn_scan,TCP,60000
+syn_scan,UDP,120
+udp_scan,UDP,19800
+udp_scan,ICMP,1
