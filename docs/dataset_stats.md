@@ -11,13 +11,11 @@ local existence, size, packet count and capture duration.
 
 | Label | PCAP file | Size | Packets | Duration |
 |---|---|---:|---:|---|
-| normal | `data/raw/normal/normal_smoke_day5.pcap` | 25.53 MB | 1983 | 61.372044 seconds |
-| normal | `data/raw/normal/normal_week1_final.pcap` | 524.13 MB | 29 | 600.300925 seconds |
-| icmp_flood | `data/raw/icmp_flood/icmp_flood_week1_final.pcap` | 353.64 MB | 5793 | 575.180427 seconds |
-| syn_scan | `data/raw/syn_scan/syn_scan_smoke_day5.pcap` | 0.90 MB | 12 | 48.337093 seconds |
-| syn_scan | `data/raw/syn_scan/syn_scan_week1_final.pcap` | 8.97 MB | 120 | 589.711965 seconds |
-| udp_scan | `data/raw/udp_scan/udp_scan_week1_final.pcap` | 1.27 MB | 20 | 573.913223 seconds |
-| port_sweep | `data/raw/port_sweep/port_sweep_week1_final.pcap` | 2.49 MB | 40 | 583.931430 seconds |
+| normal | `data/raw/normal/normal_week1_final.pcap` | 524.13 MB | 29 k | 600.300925 seconds |
+| icmp_flood | `data/raw/icmp_flood/icmp_flood_week1_final.pcap` | 353.64 MB | 5793 k | 575.180427 seconds |
+| syn_scan | `data/raw/syn_scan/syn_scan_week1_final.pcap` | 8.97 MB | 120 k | 589.711965 seconds |
+| udp_scan | `data/raw/udp_scan/udp_scan_week1_final.pcap` | 1.27 MB | 20 k | 573.913223 seconds |
+| port_sweep | `data/raw/port_sweep/port_sweep_week1_final.pcap` | 2.49 MB | 40 k | 583.931430 seconds |
 
 ## Labels
 

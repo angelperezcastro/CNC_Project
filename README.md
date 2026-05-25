@@ -365,7 +365,7 @@ This project is being built incrementally following a weekly plan:
 
 ## Repository Status
 
-This repository is currently in the dataset organization phase.
+Week 1 is complete: the environment, Docker lab, traffic generators, PCAP capture automation and initial documentation are ready.
 
 ## Attack Traffic Generation
 
@@ -417,3 +417,31 @@ The organized raw dataset follows this structure:
     data/raw/port_sweep/
 
 Raw PCAP files are ignored by Git, but docs/dataset_stats.md records their local packet counts, sizes and durations.
+
+## Week 1 Deliverables
+
+Week 1 produced the complete controlled traffic capture environment:
+
+| Deliverable | Status |
+|---|---|
+| WSL2 + Ubuntu development environment | Completed |
+| Docker traffic lab | Completed |
+| Normal traffic generator | Completed |
+| Attack traffic generator | Completed |
+| Automated PCAP capture | Completed |
+| Dataset organization by label | Completed |
+| Dataset statistics report | Completed |
+| Architecture diagram | Completed |
+| Initial report draft | Completed |
+
+Important documentation files:
+
+    docs/day2_docker_lab.md
+    docs/day3_normal_traffic.md
+    docs/day4_attack_traffic.md
+    docs/dataset_stats.md
+    docs/pcap_integrity_report.md
+    docs/architecture_diagram.md
+    docs/report_week1_draft.md
+
+Raw PCAP files are stored locally under data/raw/ and are intentionally ignored by Git.

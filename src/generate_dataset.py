@@ -206,12 +206,12 @@ def parse_capinfos_text(text: str) -> dict[str, str]:
     duration = "unknown"
 
     for line in text.splitlines():
-        if line.lower().startswith("number of packets:"):
-            match = re.search(r"(\d+)", line)
-            if match:
-                packets = match.group(1)
+        lowered = line.lower()
 
-        if line.lower().startswith("capture duration:"):
+        if lowered.startswith("number of packets:"):
+            packets = line.split(":", 1)[1].strip()
+
+        elif lowered.startswith("capture duration:"):
             duration = line.split(":", 1)[1].strip()
 
     return {
