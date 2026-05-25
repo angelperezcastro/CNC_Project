@@ -1,0 +1,53 @@
+services:
+  server:
+    build:
+      context: ./docker/server
+    container_name: cnc_server
+    hostname: server
+    networks:
+      cnc_net:
+        ipv4_address: 172.20.0.10
+    volumes:
+      - ./data/raw/day2:/captures
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./docker/client
+    container_name: cnc_client
+    hostname: client
+    networks:
+      cnc_net:
+        ipv4_address: 172.20.0.20
+    depends_on:
+      - server
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+
+  attacker:
+    build:
+      context: ./docker/attacker
+    container_name: cnc_attacker
+    hostname: attacker
+    networks:
+      cnc_net:
+        ipv4_address: 172.20.0.30
+    depends_on:
+      - server
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+
+networks:
+  cnc_net:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1

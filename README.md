@@ -17,7 +17,7 @@ The main objective is to build a reproducible and modular pipeline capable of an
 - [x] Python virtual environment created
 - [x] Core dependencies installed
 - [x] Initial project structure created
-- [ ] Docker traffic lab
+- [x] Docker traffic lab
 - [ ] PCAP capture
 - [ ] Flow reconstruction
 - [ ] Feature engineering
@@ -45,11 +45,16 @@ CNC_Project/
 ├── data/
 │   ├── raw/              Raw PCAP files, ignored by Git
 │   └── processed/        Processed datasets ready for ML
+├── docker/
+│   ├── attacker/         Container for anomalous traffic generation
+│   ├── client/           Container for legitimate traffic generation
+│   └── server/           Container running nginx, vsftpd and iperf3
 ├── docs/                 Technical documentation and setup notes
 ├── models/               Trained machine learning models
 ├── notebooks/            Exploratory analysis notebooks
 ├── src/                  Source code
 ├── tests/                Unit and integration tests
+├── docker-compose.yml    Docker lab definition
 ├── README.md             Project documentation
 ├── requirements.txt      Python dependencies
 ├── .gitignore            Git ignored files
@@ -120,6 +125,61 @@ tshark -v
 ```
 
 Wireshark and Npcap are installed on Windows for visual packet inspection and manual validation of captured traffic.
+
+## Docker Lab
+
+The project includes an isolated Docker traffic lab with three containers connected through a custom Docker bridge network.
+
+| Container | Role | Static IP |
+|---|---|---|
+| server | Runs nginx, vsftpd and iperf3 | 172.20.0.10 |
+| client | Generates legitimate traffic | 172.20.0.20 |
+| attacker | Generates anomalous and reconnaissance traffic | 172.20.0.30 |
+
+### Start the lab
+
+```bash
+docker compose up -d --build
+```
+
+### Check running containers
+
+```bash
+docker compose ps
+```
+
+### Verify HTTP connectivity
+
+```bash
+docker compose exec client curl -I http://server
+```
+
+### Verify FTP upload
+
+```bash
+docker compose exec client bash -lc 'echo "FTP smoke test from client" > /tmp/ftp_test.txt && lftp -u ftpuser,ftppass -e "set ftp:ssl-allow no; set ftp:passive-mode on; put /tmp/ftp_test.txt -o upload/ftp_test.txt; ls upload; bye" ftp://server'
+```
+
+### Verify iperf3 traffic
+
+```bash
+docker compose exec client iperf3 -c server -t 5
+```
+
+### Verify reconnaissance traffic
+
+```bash
+docker compose exec attacker nmap -sS -p 21,80,5201 server
+docker compose exec attacker hping3 -S -c 5 -p 80 server
+```
+
+### Stop the lab
+
+```bash
+docker compose down
+```
+
+This Docker lab is used to generate controlled HTTP, FTP, ICMP, iperf3 and reconnaissance traffic for later PCAP capture, flow reconstruction and feature extraction.
 
 ## Dataset Policy
 
@@ -219,5 +279,4 @@ This project is being built incrementally following a weekly plan:
 
 ## Repository Status
 
-This repository is currently in the initial setup phase.
-
+This repository is currently in the Docker traffic lab setup phase.
