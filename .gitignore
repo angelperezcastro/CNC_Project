@@ -1,0 +1,34 @@
+# Python virtual environments
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables / secrets
+.env
+.env.*
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Network captures: heavy files, not for Git
+*.pcap
+*.pcapng
+*.cap
+
+# Temporary files
+*.log
+tmp/
+temp/
+
+# Optional large or temporary model files
+models/*.tmp
