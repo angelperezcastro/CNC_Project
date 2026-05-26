@@ -1,0 +1,109 @@
+{
+  "input_path": "data/processed/dataset_features_day4.csv",
+  "initial_rows": 80571,
+  "initial_columns": 58,
+  "rows_removed_unknown_label": 0,
+  "available_base_features": [
+    "protocol",
+    "bidirectional_duration_ms",
+    "bidirectional_packets",
+    "bidirectional_bytes",
+    "src2dst_packets",
+    "dst2src_packets",
+    "src2dst_bytes",
+    "dst2src_bytes",
+    "bidirectional_mean_ps",
+    "bidirectional_syn_packets",
+    "bidirectional_ack_packets",
+    "bidirectional_rst_packets",
+    "bidirectional_fin_packets",
+    "bidirectional_psh_packets",
+    "bytes_asymmetry_ratio",
+    "packets_asymmetry_ratio",
+    "bidirectional_packets_per_ms",
+    "bytes_per_packet",
+    "syn_ack_ratio_nfstream",
+    "manual_packet_count",
+    "iat_mean_ms",
+    "iat_std_ms",
+    "iat_cv",
+    "rtt_estimate_ms",
+    "tcp_window_min",
+    "tcp_window_max",
+    "tcp_window_mean",
+    "tcp_window_var",
+    "syn_ack_ratio_manual"
+  ],
+  "missing_base_features": [],
+  "rows_removed_critical_nan": 0,
+  "rows_removed_invalid_packets_bytes_duration": 0,
+  "duration_zero_rows_kept": 79218,
+  "imputation_report": {
+    "syn_ack_ratio_nfstream": {
+      "missing_count": 20113,
+      "missing_pct": 24.9631,
+      "imputation_value": 1.0,
+      "indicator_column": "syn_ack_ratio_nfstream_missing"
+    },
+    "iat_mean_ms": {
+      "missing_count": 19802,
+      "missing_pct": 24.5771,
+      "imputation_value": 0.0128746032714843,
+      "indicator_column": "iat_mean_ms_missing"
+    },
+    "iat_std_ms": {
+      "missing_count": 19802,
+      "missing_pct": 24.5771,
+      "imputation_value": 0.0,
+      "indicator_column": "iat_std_ms_missing"
+    },
+    "iat_cv": {
+      "missing_count": 19802,
+      "missing_pct": 24.5771,
+      "imputation_value": 0.0,
+      "indicator_column": "iat_cv_missing"
+    },
+    "rtt_estimate_ms": {
+      "missing_count": 80149,
+      "missing_pct": 99.4762,
+      "imputation_value": 0.0269412994384765,
+      "indicator_column": "rtt_estimate_ms_missing"
+    },
+    "tcp_window_min": {
+      "missing_count": 20113,
+      "missing_pct": 24.9631,
+      "imputation_value": 0.0,
+      "indicator_column": "tcp_window_min_missing"
+    },
+    "tcp_window_max": {
+      "missing_count": 20113,
+      "missing_pct": 24.9631,
+      "imputation_value": 1024.0,
+      "indicator_column": "tcp_window_max_missing"
+    },
+    "tcp_window_mean": {
+      "missing_count": 20113,
+      "missing_pct": 24.9631,
+      "imputation_value": 512.0,
+      "indicator_column": "tcp_window_mean_missing"
+    },
+    "tcp_window_var": {
+      "missing_count": 20113,
+      "missing_pct": 24.9631,
+      "imputation_value": 262144.0,
+      "indicator_column": "tcp_window_var_missing"
+    },
+    "syn_ack_ratio_manual": {
+      "missing_count": 20113,
+      "missing_pct": 24.9631,
+      "imputation_value": 1.0,
+      "indicator_column": "syn_ack_ratio_manual_missing"
+    }
+  },
+  "rows_after_cleaning_before_balancing": 80571,
+  "rows_after_balancing": 491,
+  "final_feature_count": 40,
+  "output_dataset": "data/processed/dataset.csv",
+  "output_scaled_dataset": "data/processed/dataset_scaled.csv",
+  "scaler_path": "models/scaler.pkl"
+}

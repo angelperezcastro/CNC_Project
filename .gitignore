@@ -45,3 +45,7 @@ data/processed/nfstream_important_columns_preview.csv
 data/processed/dataset_features_day4.csv
 data/processed/pipeline_single_port_sweep.csv
 data/processed/pipeline_single_syn_scan.csv
+
+# Large raw feature dumps
+data/processed/dataset_features_day4.csv
+data/processed/dataset_clean_unbalanced.csv

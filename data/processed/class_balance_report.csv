@@ -1,0 +1,6 @@
+label,count_before,count_after,removed_by_balancing
+icmp_flood,61,61,0
+normal,546,129,417
+port_sweep,43,43,0
+syn_scan,60120,129,59991
+udp_scan,19801,129,19672
