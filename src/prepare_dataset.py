@@ -411,6 +411,20 @@ def main() -> None:
 
     feature_columns = [col for col in feature_columns if col in balanced_df.columns]
 
+    constant_features = [
+        col
+        for col in feature_columns
+        if balanced_df[col].nunique(dropna=False) <= 1
+    ]
+
+    feature_columns = [
+        col
+        for col in feature_columns
+        if col not in constant_features
+    ]
+
+    report["dropped_constant_features"] = constant_features
+
     clean_unbalanced = clipped_df[feature_columns + ["label"]].copy()
     final_dataset = balanced_df[feature_columns + ["label"]].copy()
 

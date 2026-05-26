@@ -118,9 +118,23 @@ Instead, the pipeline adds missing-value indicator columns and imputes numeric N
       "indicator_column": "syn_ack_ratio_manual_missing"
     }
   },
+  "dropped_constant_features": [
+    "src2dst_packets",
+    "bidirectional_fin_packets",
+    "bidirectional_psh_packets",
+    "syn_ack_ratio_nfstream",
+    "iat_std_ms",
+    "iat_cv",
+    "rtt_estimate_ms",
+    "tcp_window_min",
+    "tcp_window_max",
+    "tcp_window_mean",
+    "tcp_window_var",
+    "syn_ack_ratio_manual"
+  ],
   "rows_after_cleaning_before_balancing": 80571,
   "rows_after_balancing": 491,
-  "final_feature_count": 40,
+  "final_feature_count": 28,
   "output_dataset": "data/processed/dataset.csv",
   "output_scaled_dataset": "data/processed/dataset_scaled.csv",
   "scaler_path": "models/scaler.pkl"
@@ -188,26 +202,15 @@ Excerpt:
 | port_sweep | iat_mean_ms                  |   0.05015  |   0.047929 |  0.030337 |   0.006914 |   0.08768  |          0 |
 | syn_scan   | iat_mean_ms                  |   0.013233 |   0.011921 |  0.006695 |   0.006914 |   0.067949 |          0 |
 | udp_scan   | iat_mean_ms                  |   0.012875 |   0.012875 |  0        |   0.012875 |   0.012875 |          0 |
-| icmp_flood | iat_cv                       |   0        |   0        |  0        |   0        |   0        |          0 |
-| normal     | iat_cv                       |   0        |   0        |  0        |   0        |   0        |          0 |
-| port_sweep | iat_cv                       |   0        |   0        |  0        |   0        |   0        |          0 |
-| syn_scan   | iat_cv                       |   0        |   0        |  0        |   0        |   0        |          0 |
-| udp_scan   | iat_cv                       |   0        |   0        |  0        |   0        |   0        |          0 |
-| icmp_flood | syn_ack_ratio_manual         |   1        |   1        |  0        |   1        |   1        |          0 |
-| normal     | syn_ack_ratio_manual         |   1        |   1        |  0        |   1        |   1        |          0 |
-| port_sweep | syn_ack_ratio_manual         |   1        |   1        |  0        |   1        |   1        |          0 |
-| syn_scan   | syn_ack_ratio_manual         |   1        |   1        |  0        |   1        |   1        |          0 |
-| udp_scan   | syn_ack_ratio_manual         |   1        |   1        |  0        |   1        |   1        |          0 |
 
 ## Final feature columns
 
-Total final ML features: 40
+Total final ML features: 28
 
 - protocol
 - bidirectional_duration_ms
 - bidirectional_packets
 - bidirectional_bytes
-- src2dst_packets
 - dst2src_packets
 - src2dst_bytes
 - dst2src_bytes
@@ -215,23 +218,12 @@ Total final ML features: 40
 - bidirectional_syn_packets
 - bidirectional_ack_packets
 - bidirectional_rst_packets
-- bidirectional_fin_packets
-- bidirectional_psh_packets
 - bytes_asymmetry_ratio
 - packets_asymmetry_ratio
 - bidirectional_packets_per_ms
 - bytes_per_packet
-- syn_ack_ratio_nfstream
 - manual_packet_count
 - iat_mean_ms
-- iat_std_ms
-- iat_cv
-- rtt_estimate_ms
-- tcp_window_min
-- tcp_window_max
-- tcp_window_mean
-- tcp_window_var
-- syn_ack_ratio_manual
 - duration_zero_flag
 - syn_ack_ratio_nfstream_missing
 - iat_mean_ms_missing

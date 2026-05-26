@@ -100,9 +100,23 @@
       "indicator_column": "syn_ack_ratio_manual_missing"
     }
   },
+  "dropped_constant_features": [
+    "src2dst_packets",
+    "bidirectional_fin_packets",
+    "bidirectional_psh_packets",
+    "syn_ack_ratio_nfstream",
+    "iat_std_ms",
+    "iat_cv",
+    "rtt_estimate_ms",
+    "tcp_window_min",
+    "tcp_window_max",
+    "tcp_window_mean",
+    "tcp_window_var",
+    "syn_ack_ratio_manual"
+  ],
   "rows_after_cleaning_before_balancing": 80571,
   "rows_after_balancing": 491,
-  "final_feature_count": 40,
+  "final_feature_count": 28,
   "output_dataset": "data/processed/dataset.csv",
   "output_scaled_dataset": "data/processed/dataset_scaled.csv",
   "scaler_path": "models/scaler.pkl"
