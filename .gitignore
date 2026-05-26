@@ -40,3 +40,8 @@ data/interim/
 # Large exploratory CSVs
 data/processed/nfstream_all_flows_exploration.csv
 data/processed/nfstream_important_columns_preview.csv
+
+# Day 4 large pipeline outputs
+data/processed/dataset_features_day4.csv
+data/processed/pipeline_single_port_sweep.csv
+data/processed/pipeline_single_syn_scan.csv

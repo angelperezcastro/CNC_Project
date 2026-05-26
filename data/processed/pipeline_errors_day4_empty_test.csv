@@ -1,0 +1,2 @@
+pcap_path,label,error,elapsed_seconds
+data/interim/nfstream_compatible/empty_test/empty_test.pcap,unknown,ValueError('PCAP file is empty: /home/angel/projects/CNC_Project/data/interim/nfstream_compatible/empty_test/empty_test.pcap'),0.0
