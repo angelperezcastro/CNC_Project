@@ -1,0 +1,50 @@
+{
+  "normal_day5": {
+    "csv_path": "reports/predictions/normal_day5_predictions.csv",
+    "total_flows": 64,
+    "predicted_class_counts": {
+      "normal": 64
+    },
+    "anomaly_counts": {
+      "False": 64
+    },
+    "mean_confidence": 0.9922743272352648,
+    "mean_normal_probability": 0.9922743272352648,
+    "anomalous_flows": 0
+  },
+  "mixed_day5": {
+    "csv_path": "reports/predictions/mixed_day5_predictions.csv",
+    "total_flows": 2027,
+    "predicted_class_counts": {
+      "syn_scan": 986,
+      "udp_scan": 973,
+      "normal": 39,
+      "port_sweep": 15,
+      "icmp_flood": 14
+    },
+    "anomaly_counts": {
+      "True": 1988,
+      "False": 39
+    },
+    "mean_confidence": 0.7576555170390955,
+    "mean_normal_probability": 0.01942002280458126,
+    "anomalous_flows": 1988
+  },
+  "smoke_udp_scan": {
+    "csv_path": "reports/predictions/smoke_udp_scan_predictions_from_raw.csv",
+    "total_flows": 19801,
+    "predicted_class_counts": {
+      "udp_scan": 19461,
+      "icmp_flood": 279,
+      "port_sweep": 60,
+      "normal": 1
+    },
+    "anomaly_counts": {
+      "True": 19800,
+      "False": 1
+    },
+    "mean_confidence": 0.9959075801527735,
+    "mean_normal_probability": 0.0009362534339555698,
+    "anomalous_flows": 19800
+  }
+}
