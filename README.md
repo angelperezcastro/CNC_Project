@@ -504,8 +504,6 @@ Predicted class distribution:
 
 ![Dashboard scatter plot](reports/figures/dashboard_week4_day2_scatter_mixed_day5.png)
 
-If the image does not render after a clean clone, regenerate it by launching the dashboard, uploading a mixed PCAP and saving a screenshot under `reports/figures/`.
-
 ---
 
 ## 8. Design Decisions
