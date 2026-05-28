@@ -1,447 +1,634 @@
-# CNC Project — NetFlow Analyzer
+# NetFlow Analyzer — End-to-End Network Traffic Analysis Pipeline
 
-End-to-end network traffic analysis pipeline for a Computer Networks and Communications university project.
+<p align="center">
+  <strong>Layer 3 / Layer 4 network traffic analysis, flow reconstruction, machine learning classification and interactive Streamlit visualization.</strong>
+</p>
 
-## Goal
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white" />
+  <img src="https://img.shields.io/badge/ML-scikit--learn-F7931E?logo=scikitlearn&logoColor=white" />
+  <img src="https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B?logo=streamlit&logoColor=white" />
+  <img src="https://img.shields.io/badge/Traffic-PCAP%20%2F%20NFStream%20%2F%20Scapy-0F766E" />
+</p>
 
-This project captures network traffic in an isolated Docker environment, reconstructs TCP/UDP flows, extracts Layer 3 and Layer 4 features without payload inspection, applies machine learning models for traffic classification and anomaly detection, and visualizes the results in a Streamlit dashboard.
+---
 
-The main objective is to build a reproducible and modular pipeline capable of analyzing network behavior from PCAP files using protocol-level features such as flow duration, packet counts, byte counts, TCP flags, inter-arrival time, estimated RTT, TCP window size and SYN/ACK ratio.
+## 1. Project Description
 
-## Current Status
+Modern network traffic is increasingly encrypted, high-volume and heterogeneous. Traditional payload-based inspection is often expensive, privacy-invasive or impossible when traffic is encrypted.
 
-- [x] WSL2 + Ubuntu 22.04 development environment
-- [x] Docker Desktop with WSL2 integration
-- [x] Docker available from PowerShell and WSL
-- [x] TShark available inside WSL
-- [x] Python virtual environment created
-- [x] Core dependencies installed
-- [x] Initial project structure created
-- [x] Docker traffic lab
-- [x] PCAP capture
-- [ ] Flow reconstruction
-- [ ] Feature engineering
-- [ ] Machine learning pipeline
-- [ ] Streamlit dashboard
+**NetFlow Analyzer** addresses that problem by analyzing network behavior without inspecting packet payloads. The project captures PCAP files in an isolated Docker network, reconstructs bidirectional flows, extracts Layer 3 and Layer 4 features, applies machine learning models for traffic classification and anomaly detection, and visualizes the results in an interactive Streamlit dashboard.
 
-## Tech Stack
+The project focuses on behavioral and protocol-level indicators:
+
+- Flow duration.
+- Packet and byte counts.
+- Directional asymmetry.
+- TCP flag behavior.
+- Inter-arrival time.
+- Estimated RTT.
+- TCP window statistics.
+- SYN/ACK ratio.
+- Model confidence and anomaly probability.
+
+The objective is not only to classify traffic correctly, but to build an explainable and reproducible pipeline where every feature can be justified from networking theory.
+
+---
+
+## 2. Architecture
+
+The pipeline has five main stages:
+
+1. Traffic generation in an isolated Docker lab.
+2. Packet capture into PCAP files.
+3. Flow reconstruction and feature extraction with NFStream and Scapy.
+4. Machine learning with K-Means and Random Forest.
+5. Interactive visualization with Streamlit and Plotly.
+
+### 2.1 Architecture Diagram
+
+```mermaid
+flowchart LR
+    subgraph DockerLab["Isolated Docker Lab: 172.20.0.0/24"]
+        Server["server\nnginx + vsftpd + dnsmasq\n172.20.0.10"]
+        Client["client\nHTTP / FTP / DNS traffic\n172.20.0.20"]
+        Attacker["attacker\nICMP flood / SYN scan / UDP scan / port sweep\n172.20.0.30"]
+    end
+
+    Client -->|"legitimate traffic"| Server
+    Attacker -->|"attack and reconnaissance traffic"| Server
+
+    Server -->|"capture.py / tcpdump"| RawPCAP["Raw PCAPs\ndata/raw/<label>/*.pcap"]
+    Attacker -->|"capture.py / tcpdump"| RawPCAP
+
+    RawPCAP --> Pipeline["src/pipeline.py\nNFStream + Scapy"]
+    Pipeline --> Dataset["Processed datasets\ndata/processed/*.csv"]
+
+    Dataset --> KMeans["K-Means clustering\nmodels/kmeans.pkl"]
+    Dataset --> RF["Random Forest classifier\nmodels/rf_optimized.pkl"]
+
+    RawPCAP --> Predict["src/predict.py\nPCAP → features → scaler → model"]
+    Predict --> Predictions["Flow predictions\nreports/predictions/*.csv"]
+
+    Predictions --> Dashboard["Streamlit dashboard\napp.py"]
+    Dashboard --> Analyst["Analyst\nmetrics + charts + anomaly alert"]
+```
+
+### 2.2 Docker Lab
+
+| Service | Role | Static IP |
+|---|---|---:|
+| `server` | Runs the target network services | `172.20.0.10` |
+| `client` | Generates legitimate HTTP, FTP and DNS traffic | `172.20.0.20` |
+| `attacker` | Generates attack and reconnaissance traffic | `172.20.0.30` |
+
+The Docker network is internal and isolated from the real host network. This improves reproducibility and avoids capturing private real-world traffic.
+
+---
+
+## 3. Requirements
+
+### 3.1 Recommended Environment
+
+| Component | Recommended setup |
+|---|---|
+| Operating system | Windows 11 |
+| Linux environment | WSL2 + Ubuntu 22.04 or newer |
+| Python | Python 3.10+ |
+| Docker | Docker Desktop with WSL2 integration |
+| Packet tools | Wireshark, TShark, tcpdump, capinfos |
+| Browser | Any modern browser for Streamlit |
+
+### 3.2 Main Python Dependencies
+
+The complete dependency list is stored in `requirements.txt`.
+
+Main libraries:
 
 | Layer | Tools |
 |---|---|
-| Environment | Windows 11, WSL2, Ubuntu 22.04 |
-| Containerization | Docker Desktop, Docker Compose |
-| Packet Capture / Analysis | Wireshark, Npcap, TShark, PyShark |
-| Packet Processing | Scapy |
-| Flow Extraction | NFStream |
-| Data Processing | pandas, NumPy |
-| Machine Learning | scikit-learn, imbalanced-learn, joblib |
-| Visualization | Streamlit, Plotly, Matplotlib, Seaborn |
-| Version Control | Git, GitHub |
+| Packet processing | `scapy`, `pyshark`, `nfstream` |
+| Data processing | `pandas`, `numpy`, `scipy` |
+| Machine learning | `scikit-learn`, `imbalanced-learn`, `joblib` |
+| Visualization | `streamlit`, `plotly`, `altair`, `matplotlib`, `seaborn` |
+| Notebooks | `jupyter`, `ipykernel` |
 
-## Project Structure
+---
 
-```text
-CNC_Project/
-├── data/
-│   ├── raw/              Raw PCAP files, ignored by Git
-│   └── processed/        Processed datasets ready for ML
-├── docker/
-│   ├── attacker/         Container for anomalous traffic generation
-│   ├── client/           Container for legitimate traffic generation
-│   └── server/           Container running nginx, vsftpd, dnsmasq and iperf3
-├── docs/                 Technical documentation and setup notes
-├── models/               Trained machine learning models
-├── notebooks/            Exploratory analysis notebooks
-├── src/                  Source code
-├── tests/                Unit and integration tests
-├── docker-compose.yml    Docker lab definition
-├── README.md             Project documentation
-├── requirements.txt      Python dependencies
-├── .gitignore            Git ignored files
-└── .gitattributes        Line ending configuration
+## 4. Installation
+
+### 4.1 Clone the repository
+
+```bash
+git clone https://github.com/angelperezcastro/CNC_Project.git
+cd CNC_Project
 ```
 
-## Environment Setup
-
-This project is developed inside WSL2 Ubuntu 22.04.
-
-### 1. Create and activate the virtual environment
+### 4.2 Create and activate a virtual environment
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 2. Upgrade Python packaging tools
+### 4.3 Upgrade packaging tools
 
 ```bash
 python -m pip install --upgrade pip setuptools wheel
 ```
 
-### 3. Install dependencies
+### 4.4 Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Verify the environment
+### 4.5 Verify Python imports
 
 ```bash
-python src/check_environment.py
+python - <<'PY'
+import pandas
+import numpy
+import sklearn
+import scapy
+import nfstream
+import streamlit
+import plotly
+
+print("Environment OK")
+PY
 ```
 
-Expected final output:
+### 4.6 Verify Docker from WSL
 
-```text
-[SUCCESS] Environment is ready for Day 2.
-```
-
-## Docker Verification
-
-Docker Desktop must be running and WSL2 integration must be enabled for Ubuntu 22.04.
-
-Verify Docker from WSL:
+Docker Desktop must be running and WSL2 integration must be enabled.
 
 ```bash
-docker --version
+which docker
+docker version
 docker compose version
-docker run --rm hello-world
 ```
 
-Expected result:
+If Docker is not available inside WSL2, enable it from Docker Desktop:
 
 ```text
-Hello from Docker!
+Docker Desktop → Settings → Resources → WSL Integration → Enable Ubuntu → Apply & Restart
 ```
 
-## Packet Analysis Tools
+Then restart WSL from PowerShell:
 
-TShark must be available inside WSL because PyShark depends on it.
-
-Verify TShark:
-
-```bash
-tshark -v
+```powershell
+wsl --shutdown
 ```
 
-Wireshark and Npcap are installed on Windows for visual packet inspection and manual validation of captured traffic.
+---
 
-## Docker Lab
+## 5. Usage
 
-The project includes an isolated Docker traffic lab with three containers connected through a custom Docker bridge network.
-
-| Container | Role | Static IP |
-|---|---|---|
-| server | Runs nginx, vsftpd, dnsmasq and iperf3 | 172.20.0.10 |
-| client | Generates legitimate traffic | 172.20.0.20 |
-| attacker | Generates anomalous and reconnaissance traffic | 172.20.0.30 |
-
-### Start the lab
+### 5.1 Start the Docker traffic lab
 
 ```bash
 docker compose up -d --build
-```
-
-### Check running containers
-
-```bash
 docker compose ps
 ```
 
-### Verify HTTP connectivity
+Expected services:
+
+```text
+server
+client
+attacker
+```
+
+Basic checks:
 
 ```bash
 docker compose exec client curl -I http://server
-```
-
-### Verify FTP upload
-
-```bash
-docker compose exec client bash -lc 'echo "FTP smoke test from client" > /tmp/ftp_test.txt && lftp -u ftpuser,ftppass -e "set ftp:ssl-allow no; set ftp:passive-mode on; put /tmp/ftp_test.txt -o upload/ftp_test.txt; ls upload; bye" ftp://server'
-```
-
-### Verify DNS
-
-```bash
 docker compose exec client dig @server server.cnc.local +short
-docker compose exec client dig @server api.cnc.local +short
-docker compose exec client dig @server files.cnc.local +short
+docker compose exec attacker nmap -n -sS -Pn -p 21,80 server
 ```
 
-### Verify iperf3 traffic
+---
+
+### 5.2 Generate labeled PCAP traffic
+
+Short demo generation:
 
 ```bash
-docker compose exec client iperf3 -c server -t 5
+python src/generate_dataset.py \
+  --duration 30 \
+  --labels normal syn_scan udp_scan port_sweep \
+  --tag week4_day3_demo
 ```
 
-### Verify reconnaissance traffic
+Full dataset generation:
 
 ```bash
-docker compose exec attacker nmap -sS -p 21,80,5201 server
-docker compose exec attacker hping3 -S -c 5 -p 80 server
+python src/generate_dataset.py \
+  --duration 600 \
+  --labels normal icmp_flood syn_scan udp_scan port_sweep \
+  --tag week1_final
 ```
 
-### Stop the lab
+Inspect generated PCAPs:
 
 ```bash
+find data/raw -type f -name "*.pcap" -exec ls -lh {} \;
+```
+
+Raw PCAP files are ignored by Git because they can become large.
+
+---
+
+### 5.3 Generate traffic manually
+
+Normal traffic:
+
+```bash
+docker compose exec client generate_normal.sh 60
+```
+
+Attack traffic:
+
+```bash
+docker compose exec attacker generate_attack.sh syn_scan server
+docker compose exec attacker generate_attack.sh udp_scan server
+docker compose exec attacker generate_attack.sh port_sweep
+docker compose exec attacker generate_attack.sh icmp_flood server 5
+```
+
+The attack script restricts execution to the local lab target.
+
+---
+
+### 5.4 Capture traffic manually
+
+Example normal capture:
+
+```bash
+python src/capture.py \
+  --container server \
+  --output data/raw/normal/manual_demo.pcap \
+  --duration 60
+```
+
+Example attack capture:
+
+```bash
+python src/capture.py \
+  --container attacker \
+  --output data/raw/syn_scan/manual_syn_scan_demo.pcap \
+  --duration 60
+```
+
+---
+
+### 5.5 Extract flows and build datasets
+
+The feature extraction pipeline combines:
+
+- NFStream bidirectional flow reconstruction.
+- Base L3/L4 statistics.
+- Manual Scapy features.
+- Cleaning and feature alignment.
+- Scaling and artifact export.
+
+Main files:
+
+```text
+src/pipeline.py
+src/manual_features.py
+src/prepare_dataset.py
+```
+
+Typical outputs:
+
+```text
+data/processed/dataset.csv
+data/processed/dataset_scaled.csv
+data/processed/cleaning_report.json
+models/scaler.pkl
+models/feature_columns.json
+```
+
+---
+
+### 5.6 Machine Learning Workflow
+
+The training and evaluation workflow is documented in:
+
+```text
+notebooks/03_clustering.ipynb
+notebooks/04_classification.ipynb
+docs/model_evaluation.md
+```
+
+Model artifacts:
+
+```text
+models/kmeans.pkl
+models/rf_model.pkl
+models/rf_optimized.pkl
+models/scaler.pkl
+models/label_encoder.pkl
+models/feature_columns.json
+```
+
+---
+
+### 5.7 Predict classes from a new PCAP
+
+```bash
+python src/predict.py data/test/mixed_day5.pcap \
+  --output reports/predictions/mixed_day5_predictions.csv
+```
+
+The prediction pipeline performs:
+
+1. PCAP normalization for NFStream compatibility.
+2. Flow extraction.
+3. Feature alignment with the training schema.
+4. Scaling.
+5. Random Forest prediction.
+6. Anomaly flagging with `P(normal) < 0.4`.
+7. CSV export.
+
+---
+
+### 5.8 Launch the Streamlit dashboard
+
+```bash
+streamlit run app.py
+```
+
+Open:
+
+```text
+http://localhost:8501
+```
+
+Dashboard features:
+
+- PCAP / PCAPNG upload.
+- Progress bar during analysis.
+- Invalid PCAP detection.
+- Total flows, normal flows and anomalous flows.
+- Most frequent attack.
+- Mean prediction confidence.
+- Analysis time.
+- Class distribution bar chart.
+- Bytes vs duration scatter plot.
+- Flow timeline.
+- Class-filterable table.
+- About section with model and feature details.
+
+---
+
+## 6. Feature Table
+
+| Feature | Formula / source | Why it helps |
+|---|---|---|
+| `bidirectional_duration_ms` | Last packet timestamp minus first packet timestamp | Scans and floods often produce short flows; legitimate FTP/HTTP transfers can last longer. |
+| `bidirectional_packets` | Total packets in both directions | Captures the volume of interaction inside a flow. |
+| `bidirectional_bytes` | Total bytes in both directions | Distinguishes real data transfer from control-only probes. |
+| `src2dst_bytes` / `dst2src_bytes` | Directional byte counts | Scans are often asymmetric because they send probes with little or no response. |
+| `bytes_asymmetry_ratio` | Directional byte imbalance | Useful for identifying one-sided probing behavior. |
+| `bidirectional_mean_ps` | Mean packet size | Control traffic and scans usually have small packets; data transfers approach larger packet sizes. |
+| `bidirectional_packets_per_ms` | Packets divided by duration | High-rate traffic can reveal flood-like behavior. |
+| TCP flag counts | SYN, ACK, RST, FIN, PSH counts | TCP scans have characteristic SYN/RST behavior and often do not complete normal sessions. |
+| `syn_ack_ratio_manual` | SYN packets divided by ACK packets | A high ratio indicates incomplete handshakes, typical of half-open SYN scanning. |
+| `iat_mean_ms` | Mean inter-arrival time | Automated traffic often has more regular timing than human/application traffic. |
+| `iat_cv` | `std(IAT) / mean(IAT)` | Scale-independent timing variability; useful for floods and scans. |
+| `rtt_estimate_ms` | SYN-ACK timestamp minus SYN timestamp | Valid only when a TCP handshake exists; missing RTT is informative for non-TCP or incomplete sessions. |
+| TCP window statistics | Min, max, mean and variance of TCP window | Real TCP sessions can show window dynamics; simple scans often use fixed or low-variance values. |
+| `protocol` / `protocol_name` | IP transport protocol | Separates TCP, UDP and ICMP behavior. |
+
+The system deliberately avoids payload inspection. This keeps the analysis privacy-preserving and applicable to encrypted traffic at the behavioral level.
+
+---
+
+## 7. Results
+
+### 7.1 Dataset Summary
+
+| Label | Count | Percentage |
+|---|---:|---:|
+| `udp_scan` | 129 | 26.27% |
+| `normal` | 129 | 26.27% |
+| `syn_scan` | 129 | 26.27% |
+| `icmp_flood` | 61 | 12.42% |
+| `port_sweep` | 43 | 8.76% |
+
+---
+
+### 7.2 Random Forest Evaluation
+
+| Metric | Value |
+|---|---:|
+| Train accuracy | 0.9796 |
+| Test accuracy | 0.9697 |
+| Train-test gap | 0.0099 |
+| Weighted F1-score | 0.9689 |
+| Mean 5-fold weighted F1 | 0.9676 |
+| Std 5-fold weighted F1 | 0.0198 |
+
+The train-test gap is below 5%, so there is no strong evidence of overfitting.
+
+### Per-class metrics
+
+| Class | Precision | Recall | F1-score | Support |
+|---|---:|---:|---:|---:|
+| `icmp_flood` | 0.9231 | 1.0000 | 0.9600 | 12 |
+| `normal` | 1.0000 | 0.9615 | 0.9804 | 26 |
+| `port_sweep` | 1.0000 | 0.7778 | 0.8750 | 9 |
+| `syn_scan` | 0.9286 | 1.0000 | 0.9630 | 26 |
+| `udp_scan` | 1.0000 | 1.0000 | 1.0000 | 26 |
+
+### ROC-AUC one-vs-rest
+
+| Class | ROC-AUC |
+|---|---:|
+| `icmp_flood` | 1.0000 |
+| `normal` | 0.9989 |
+| `port_sweep` | 0.9333 |
+| `syn_scan` | 0.9887 |
+| `udp_scan` | 1.0000 |
+
+---
+
+### 7.3 Error Analysis
+
+The model produced only a small number of errors in the test split:
+
+| True label | Predicted label | Count |
+|---|---|---:|
+| `port_sweep` | `syn_scan` | 2 |
+| `normal` | `icmp_flood` | 1 |
+
+From a security perspective, the most important result is that no attack flow was classified as `normal` in the evaluation split. The `port_sweep` errors were still classified as attack-like reconnaissance traffic.
+
+The main limitation appears in the separation between different scan types. At the isolated flow level, a port sweep probe can look similar to a SYN scan because both can generate short, low-payload TCP flows with control-flag behavior.
+
+---
+
+### 7.4 Dashboard Demo Result
+
+The final dashboard demo was validated with:
+
+```text
+data/test/week4_day3_docker_demo_mixed.pcap
+```
+
+Observed metrics:
+
+| Metric | Value |
+|---|---:|
+| Total flows | 4025 |
+| Normal flows | 26 |
+| Anomalous flows | 3999 |
+| Most frequent attack | `syn_scan` |
+| Mean confidence | 94.16% |
+
+Predicted class distribution:
+
+| Predicted class | Flows |
+|---|---:|
+| `syn_scan` | 2923 |
+| `udp_scan` | 973 |
+| `port_sweep` | 86 |
+| `normal` | 26 |
+| `icmp_flood` | 17 |
+
+### Dashboard screenshot
+
+![Dashboard scatter plot](reports/figures/dashboard_week4_day2_scatter_mixed_day5.png)
+
+If the image does not render after a clean clone, regenerate it by launching the dashboard, uploading a mixed PCAP and saving a screenshot under `reports/figures/`.
+
+---
+
+## 8. Design Decisions
+
+### 8.1 Why Docker instead of real network traffic?
+
+The project uses an isolated Docker network because it provides reproducibility, safety and control. Real network traffic can contain private data and is difficult to label accurately. Docker makes it possible to generate known normal and attack traffic classes while keeping the experiment separated from the host network.
+
+### 8.2 Why L3/L4 features instead of payload inspection?
+
+Payload inspection is increasingly limited by encryption and can raise privacy concerns. This project intentionally uses only Layer 3 and Layer 4 metadata: IPs, ports, protocol, byte counts, packet counts, timing and TCP flags. This makes the analysis compatible with encrypted traffic at the behavioral level.
+
+### 8.3 Why NFStream plus Scapy?
+
+NFStream is used for flow reconstruction because it provides bidirectional flow aggregation and many flow-level statistics out of the box. Scapy is used for manual packet-level features that require direct access to packet headers, such as inter-arrival time, estimated RTT, TCP window statistics and SYN/ACK ratio.
+
+### 8.4 Why Random Forest?
+
+Random Forest is a strong fit for this project because it handles heterogeneous tabular features, is robust to irrelevant variables, reduces overfitting compared with a single Decision Tree and provides feature importance for technical interpretation. The Decision Tree baseline achieved lower test accuracy and a larger train-test gap, confirming the benefit of the ensemble model.
+
+### 8.5 Why Streamlit?
+
+Streamlit allows the complete dashboard to be implemented in Python without building a separate frontend. This is appropriate for an academic project where the priority is to demonstrate the full analysis pipeline clearly and reproducibly.
+
+---
+
+## 9. Project Structure
+
+```text
+CNC_Project/
+├── app.py
+├── docker-compose.yml
+├── docker/
+│   ├── attacker/
+│   ├── client/
+│   └── server/
+├── data/
+│   ├── raw/
+│   ├── interim/
+│   ├── processed/
+│   └── test/
+├── docs/
+├── models/
+├── notebooks/
+├── reports/
+│   ├── figures/
+│   └── predictions/
+├── src/
+│   ├── capture.py
+│   ├── generate_dataset.py
+│   ├── manual_features.py
+│   ├── pipeline.py
+│   ├── predict.py
+│   ├── prepare_dataset.py
+│   └── dashboard_adapter.py
+└── requirements.txt
+```
+
+---
+
+## 10. Reproducibility Notes
+
+Raw PCAP files are ignored by Git because they can become very large. To reproduce the full workflow from a clean clone:
+
+1. Install dependencies.
+2. Start Docker Desktop with WSL2 integration.
+3. Start the Docker Compose lab.
+4. Generate PCAP files with `src/generate_dataset.py`.
+5. Run feature extraction and ML notebooks if retraining is required.
+6. Use `src/predict.py` or `app.py` to analyze new PCAPs.
+
+---
+
+## 11. Limitations
+
+- The dataset is synthetic and generated in a controlled Docker lab.
+- The model is trained on a limited set of traffic classes.
+- The dashboard performs batch PCAP analysis, not real-time streaming.
+- The model may not generalize to attack families not represented during training.
+- Per-flow features can confuse similar scan types such as `port_sweep` and `syn_scan`.
+- Temporal aggregation features over sliding windows are not yet implemented.
+
+---
+
+## 12. Future Work
+
+Concrete improvements:
+
+- Add temporal aggregation features:
+  - `unique_dst_ports_per_src`
+  - `unique_dst_hosts_per_src`
+  - `connection_attempts_per_second`
+  - `dst_port_entropy`
+- Evaluate on public datasets such as CICIDS2017 or UNSW-NB15.
+- Add a lightweight streaming mode with Kafka or a rolling PCAP watcher.
+- Add model comparison with Gradient Boosting and calibrated probability estimates.
+- Add automated tests for dashboard callbacks and invalid PCAP handling.
+- Export dashboard reports as PDF or HTML.
+
+---
+
+## 13. Quick Command Reference
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+docker compose up -d --build
+docker compose ps
+
+python src/generate_dataset.py --duration 30 --labels normal syn_scan udp_scan port_sweep --tag week4_day3_demo
+
+python src/predict.py data/test/mixed_day5.pcap --output reports/predictions/mixed_day5_predictions.csv
+
+streamlit run app.py
+
 docker compose down
 ```
 
-This Docker lab is used to generate controlled HTTP, FTP, DNS, ICMP, iperf3 and reconnaissance traffic for later PCAP capture, flow reconstruction and feature extraction.
+---
 
-## Normal Traffic Generation
+## 14. Academic Context
 
-The client container includes a normal traffic generator:
+This project was developed as an individual Computer Networks and Communications project. Its main goal is to demonstrate a complete and explainable network traffic analysis workflow, connecting packet-level networking concepts with machine learning and visualization.
 
-```bash
-docker compose exec client generate_normal.sh 300
-```
-
-The script generates mixed legitimate traffic for 300 seconds:
-
-- HTTP GET requests with different response sizes.
-- HTTP POST requests with JSON payloads.
-- FTP uploads using 1 MB, 10 MB and 50 MB files.
-- DNS queries against the internal DNS service.
-
-The first labeled normal PCAP is stored locally as:
-
-```text
-data/raw/normal_http_ftp.pcap
-```
-
-Raw PCAP files are ignored by Git.
-
-## Normal Traffic Capture
-
-A reliable PCAP can be captured from the server container:
-
-```bash
-docker compose exec -d server bash -lc 'tcpdump -i any -U -w /captures/normal_http_ftp.pcap'
-```
-
-Then generate normal traffic:
-
-```bash
-docker compose exec client generate_normal.sh 300
-```
-
-Stop the capture:
-
-```bash
-docker compose exec server pkill tcpdump || true
-```
-
-Verify the resulting PCAP:
-
-```bash
-ls -lh data/raw/normal_http_ftp.pcap
-tshark -r data/raw/normal_http_ftp.pcap -c 20
-```
-
-Useful protocol checks:
-
-```bash
-tshark -r data/raw/normal_http_ftp.pcap -Y "http" -c 10
-tshark -r data/raw/normal_http_ftp.pcap -Y "ftp or tcp.port == 21" -c 10
-tshark -r data/raw/normal_http_ftp.pcap -Y "dns" -c 10
-tshark -r data/raw/normal_http_ftp.pcap -Y "tcp.port >= 30000 and tcp.port <= 30009" -c 10
-```
-
-## Wireshark Filters
-
-Useful Wireshark filters for validating the normal traffic PCAP:
-
-```text
-ip.addr == 172.20.0.10
-http or tcp.port == 80
-ftp or tcp.port == 21
-tcp.port >= 30000 and tcp.port <= 30009
-dns
-```
-
-These filters should show:
-
-- HTTP GET and POST traffic.
-- FTP control traffic on TCP/21.
-- FTP passive data traffic on TCP/30000-30009.
-- DNS queries to internal domains such as `server.cnc.local`, `api.cnc.local` and `files.cnc.local`.
-
-## Dataset Policy
-
-Raw packet captures are intentionally ignored by Git:
-
-```text
-*.pcap
-*.pcapng
-*.cap
-```
-
-PCAP files can be large and may contain sensitive traffic. Even though this project uses synthetic traffic generated inside an isolated Docker environment, excluding raw captures from version control keeps the repository lightweight and safer.
-
-## Planned Pipeline
-
-The final system will follow this workflow:
-
-```text
-Docker traffic lab
-        ↓
-Traffic generation
-        ↓
-PCAP capture
-        ↓
-Flow reconstruction
-        ↓
-L3/L4 feature extraction
-        ↓
-Data cleaning and normalization
-        ↓
-Machine learning models
-        ↓
-Streamlit dashboard
-```
-
-## Target Traffic Classes
-
-The project will generate and analyze several traffic categories:
-
-| Class | Description |
-|---|---|
-| normal | Legitimate HTTP, FTP and DNS-like traffic |
-| icmp_flood | High-rate ICMP traffic |
-| syn_scan | TCP SYN scan behavior |
-| port_sweep | Host or port discovery behavior |
-
-## Target Features
-
-The feature engineering phase will focus on Layer 3 and Layer 4 information only, without inspecting application payloads.
-
-Planned features include:
-
-| Feature | Purpose |
-|---|---|
-| Flow duration | Distinguishes short scans from longer legitimate flows |
-| Packet count | Captures flow volume |
-| Byte count | Captures transferred data volume |
-| Bytes per packet | Separates data transfer from control packets |
-| TCP flag counts | Detects SYN, ACK, RST and FIN behavior |
-| SYN/ACK ratio | Identifies incomplete TCP handshakes and scans |
-| Inter-arrival time | Measures timing regularity between packets |
-| Estimated RTT | Approximates network latency from TCP handshake packets |
-| TCP window size | Captures TCP stack behavior and congestion control patterns |
-
-## Machine Learning Plan
-
-The project will use two main ML approaches:
-
-1. **K-Means clustering** for unsupervised traffic behavior discovery.
-2. **Random Forest classification** for supervised traffic classification.
-
-Random Forest is selected because it is robust, interpretable through feature importance, and well suited for tabular network-flow features.
-
-## Dashboard Plan
-
-The Streamlit dashboard will allow the user to upload or analyze a PCAP file and visualize:
-
-- Total number of flows
-- Number of normal and anomalous flows
-- Most frequent detected attack class
-- Flow classification table
-- Class distribution chart
-- Scatter plot of flow duration vs bytes
-- Timeline of detected flows
-- Alert banner when anomalous traffic is detected
-
-## Development Notes
-
-This project is being built incrementally following a weekly plan:
-
-1. Environment setup and Docker traffic generation
-2. PCAP capture and flow reconstruction
-3. Feature engineering and dataset preparation
-4. Machine learning pipeline
-5. Streamlit dashboard
-6. Final documentation and report
-
-## Repository Status
-
-Week 1 is complete: the environment, Docker lab, traffic generators, PCAP capture automation and initial documentation are ready.
-
-## Attack Traffic Generation
-
-The attacker container includes an attack traffic generator with four independent modules:
-
-| Module | Description | Output PCAP |
-|---|---|---|
-| icmp_flood | ICMP echo flood against the server | data/raw/icmp_flood.pcap |
-| syn_scan | TCP SYN scan against ports 1-1000 | data/raw/syn_scan.pcap |
-| udp_scan | UDP scan against ports 1-500 | data/raw/udp_scan.pcap |
-| port_sweep | Host discovery over the Docker subnet | data/raw/port_sweep.pcap |
-
-Example commands:
-
-    docker compose exec attacker generate_attack.sh icmp_flood server 10
-    docker compose exec attacker generate_attack.sh syn_scan server
-    docker compose exec attacker generate_attack.sh udp_scan server
-    docker compose exec attacker generate_attack.sh port_sweep
-
-All attack traffic is restricted to the isolated Docker lab network.
-
-## Automated Dataset Generation
-
-The project includes two Python scripts for automated dataset creation:
-
-| Script | Purpose |
-|---|---|
-| src/capture.py | Starts and stops tcpdump inside a Docker container and saves PCAP files under data/raw |
-| src/generate_dataset.py | Orchestrates traffic generation, packet capture and dataset statistics |
-
-Generate a smoke dataset:
-
-    python src/generate_dataset.py --duration 60 --tag smoke_day5 --labels normal syn_scan
-
-Generate the final Week 1 dataset with 10 minutes per category:
-
-    python src/generate_dataset.py --duration 600 --tag week1_final
-
-Regenerate dataset statistics from existing local PCAPs:
-
-    python src/generate_dataset.py --stats-only
-
-The organized raw dataset follows this structure:
-
-    data/raw/normal/
-    data/raw/icmp_flood/
-    data/raw/syn_scan/
-    data/raw/udp_scan/
-    data/raw/port_sweep/
-
-Raw PCAP files are ignored by Git, but docs/dataset_stats.md records their local packet counts, sizes and durations.
-
-## Week 1 Deliverables
-
-Week 1 produced the complete controlled traffic capture environment:
-
-| Deliverable | Status |
-|---|---|
-| WSL2 + Ubuntu development environment | Completed |
-| Docker traffic lab | Completed |
-| Normal traffic generator | Completed |
-| Attack traffic generator | Completed |
-| Automated PCAP capture | Completed |
-| Dataset organization by label | Completed |
-| Dataset statistics report | Completed |
-| Architecture diagram | Completed |
-| Initial report draft | Completed |
-
-Important documentation files:
-
-    docs/day2_docker_lab.md
-    docs/day3_normal_traffic.md
-    docs/day4_attack_traffic.md
-    docs/dataset_stats.md
-    docs/pcap_integrity_report.md
-    docs/architecture_diagram.md
-    docs/report_week1_draft.md
-
-Raw PCAP files are stored locally under data/raw/ and are intentionally ignored by Git.
