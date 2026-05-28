@@ -49,3 +49,5 @@ data/processed/pipeline_single_syn_scan.csv
 # Large raw feature dumps
 data/processed/dataset_features_day4.csv
 data/processed/dataset_clean_unbalanced.csv
+reports/predictions/*dashboard*.csv
+reports/predictions/*probe*.csv
