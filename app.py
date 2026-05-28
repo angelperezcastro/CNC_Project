@@ -1,10 +1,10 @@
 """
 Streamlit dashboard for NetFlow Analyzer.
 
-Week 4 Day 2 scope:
+Week 4 Day 3 scope:
 - Upload a PCAP/PCAPNG file.
 - Run the existing prediction pipeline from src.predict.
-- Show summary metrics including mean confidence.
+- Show summary metrics including mean confidence and analysis time.
 - Show an anomaly alert banner.
 - Show interactive Plotly visualizations:
   1. Class distribution bar chart.
@@ -12,11 +12,13 @@ Week 4 Day 2 scope:
   3. Flow timeline.
 - Show a class-filterable flow table.
 - Show an About section explaining the system.
+- Improve UX for long analyses and invalid PCAP files.
 """
 
 from __future__ import annotations
 
 import tempfile
+import time
 from pathlib import Path
 
 import numpy as np
@@ -111,15 +113,14 @@ def render_sidebar() -> None:
     )
 
     st.sidebar.divider()
-    st.sidebar.markdown("### Day 2 scope")
+    st.sidebar.markdown("### Day 3 scope")
     st.sidebar.markdown(
         """
-        - Class distribution
-        - Bytes vs duration scatter
-        - Flow timeline
-        - Class-filtered table
-        - Anomaly alert
-        - About section
+        - End-to-end PCAP demo
+        - Progress bar
+        - Long-analysis UX
+        - Invalid PCAP handling
+        - Demo-ready dashboard
         """
     )
 
@@ -134,6 +135,13 @@ def run_analysis(uploaded_file) -> None:
     Streamlit receives uploaded files as bytes, while the existing prediction
     pipeline expects a filesystem path. Therefore, the uploaded PCAP is first
     stored in a temporary file.
+
+    Day 3 UX improvements:
+    - Basic invalid PCAP/PCAPNG detection.
+    - Spinner during analysis.
+    - Progress bar for long-running analysis.
+    - Runtime measurement.
+    - Cleaner error messages for invalid captures.
     """
     suffix = Path(uploaded_file.name).suffix.lower()
 
@@ -141,22 +149,83 @@ def run_analysis(uploaded_file) -> None:
         st.error("Invalid file type. Upload a .pcap or .pcapng file.")
         return
 
+    uploaded_bytes = bytes(uploaded_file.getbuffer())
+
+    if not looks_like_packet_capture(uploaded_bytes):
+        st.error(
+            "Invalid PCAP/PCAPNG file. The uploaded file does not contain a valid packet capture header."
+        )
+        return
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-        tmp_file.write(uploaded_file.getbuffer())
+        tmp_file.write(uploaded_bytes)
         tmp_path = Path(tmp_file.name)
+
+    progress_bar = st.progress(0, text="Preparing PCAP analysis...")
+    start_time = time.perf_counter()
 
     try:
         with st.spinner("Analyzing PCAP with the trained Random Forest model..."):
+            progress_bar.progress(15, text="PCAP uploaded and stored temporarily.")
+            progress_bar.progress(35, text="Running flow extraction and feature engineering...")
+
             predictions_df = analyze_pcap_for_dashboard(tmp_path)
+
+            progress_bar.progress(85, text="Preparing dashboard visualizations...")
+
+        elapsed_seconds = time.perf_counter() - start_time
 
         st.session_state["predictions_df"] = predictions_df
         st.session_state["uploaded_filename"] = uploaded_file.name
+        st.session_state["analysis_time_seconds"] = elapsed_seconds
 
-        st.success(f"Analysis completed: {uploaded_file.name}")
+        progress_bar.progress(100, text="Analysis completed.")
+
+        if elapsed_seconds > 10:
+            st.info(
+                f"Analysis took {elapsed_seconds:.2f} seconds. "
+                "Large PCAP files require more time because flow extraction and manual features "
+                "must be computed before prediction."
+            )
+
+        st.success(f"Analysis completed: {uploaded_file.name} in {elapsed_seconds:.2f} seconds.")
 
     except Exception as exc:
-        st.error("The PCAP could not be analyzed.")
-        st.exception(exc)
+        progress_bar.empty()
+        st.error(
+            "The uploaded file could not be analyzed. "
+            "Please verify that it is a valid PCAP/PCAPNG capture and not a corrupted file."
+        )
+
+        with st.expander("Technical error details"):
+            st.exception(exc)
+
+
+def looks_like_packet_capture(file_bytes: bytes) -> bool:
+    """
+    Perform a lightweight PCAP/PCAPNG header validation.
+
+    Args:
+        file_bytes: Uploaded file content.
+
+    Returns:
+        True if the file starts with a known PCAP or PCAPNG magic number.
+    """
+    if len(file_bytes) < 4:
+        return False
+
+    magic = file_bytes[:4]
+
+    pcap_magic_numbers = {
+        b"\xa1\xb2\xc3\xd4",
+        b"\xd4\xc3\xb2\xa1",
+        b"\xa1\xb2\x3c\x4d",
+        b"\x4d\x3c\xb2\xa1",
+    }
+
+    pcapng_magic_number = b"\x0a\x0d\x0d\x0a"
+
+    return magic in pcap_magic_numbers or magic == pcapng_magic_number
 
 
 def render_empty_state() -> None:
@@ -174,6 +243,7 @@ def render_empty_state() -> None:
         - Total reconstructed flows.
         - Number of normal and anomalous flows.
         - Mean prediction confidence.
+        - Analysis time.
         - Class distribution bar chart.
         - Bytes vs duration scatter plot.
         - Flow timeline.
@@ -219,12 +289,15 @@ def render_metrics(df: pd.DataFrame) -> None:
     """
     Render summary metrics.
 
-    Day 2 adds mean confidence to demonstrate the difference between hard labels
-    and probabilistic model confidence.
+    Day 2 added mean confidence to distinguish hard predictions from probabilistic
+    model confidence.
+
+    Day 3 adds analysis time to support the final end-to-end demo.
     """
     metrics = compute_dashboard_metrics(df)
+    analysis_time = st.session_state.get("analysis_time_seconds")
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
 
     col1.metric("Total flows", f"{metrics['total_flows']:,}")
     col2.metric("Normal flows", f"{metrics['normal_flows']:,}")
@@ -236,6 +309,11 @@ def render_metrics(df: pd.DataFrame) -> None:
         col5.metric("Mean confidence", "N/A")
     else:
         col5.metric("Mean confidence", f"{mean_confidence:.2f}%")
+
+    if analysis_time is None:
+        col6.metric("Analysis time", "N/A")
+    else:
+        col6.metric("Analysis time", f"{analysis_time:.2f}s")
 
 
 def render_anomaly_alert(df: pd.DataFrame) -> None:
@@ -329,7 +407,7 @@ def build_chart_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 def render_visualizations(df: pd.DataFrame) -> None:
     """
-    Render the Day 2 interactive visualizations.
+    Render the interactive visualizations.
     """
     st.subheader("Interactive visualizations")
 
@@ -547,7 +625,7 @@ def style_confidence_cell(value: object) -> str:
 
 def render_about() -> None:
     """
-    Render the About section required for Week 4 Day 2.
+    Render the About section required for the dashboard.
     """
     with st.expander("About NetFlow Analyzer"):
         st.markdown(

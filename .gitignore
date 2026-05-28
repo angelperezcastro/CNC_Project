@@ -51,3 +51,5 @@ data/processed/dataset_features_day4.csv
 data/processed/dataset_clean_unbalanced.csv
 reports/predictions/*dashboard*.csv
 reports/predictions/*probe*.csv
+reports/demo/*.mp4
+reports/demo/*.gif
