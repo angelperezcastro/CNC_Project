@@ -13,6 +13,10 @@
 </p>
 
 ---
+# Presentation 
+https://canva.link/g6idpluhmsl8ps6
+
+---
 
 ## 1. Project Description
 
