@@ -178,8 +178,8 @@ If Ubuntu asks whether non-superusers should be able to capture packets, either 
 ### 5.1 Clone the Repository
 
 ```bash
-git clone https://github.com/angelperezcastro/CNC_Project.git
-cd CNC_Project
+git clone https://github.com/angelperezcastro/NetFlow-Analyzer.git
+cd NetFlow-Analyzer
 ```
 
 ### 5.2 Create and Activate a Virtual Environment
